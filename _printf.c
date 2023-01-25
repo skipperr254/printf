@@ -1,53 +1,50 @@
-#include <stdarg.h>
+#include "main.h"
+#include <limits.h>
 #include <stdio.h>
 
 /**
-* _printf - Produces output according to a format
-* @format: Character string that contains zero or more directives
-*
-* Description: This function takes a format string and any additional
-* arguments specified by the format string, and uses the "putchar"
-* function to print the corresponding characters to the standard output stream.
-*
-* The function uses the va_list, va_start, and va_end macros to handle the variable
-* number of arguments passed in. It iterates through the format string, checking
-* for the '%' character, which indicates a conversion specifier. If a '%' is found,
-* the next character is checked to determine which conversion specifier is being used.
-* If it is 'c', the next argument is interpreted as a character and printed using putchar().
-* If it is 's', the next argument is interpreted as a string, and each character in the
-* string is printed using putchar(). If it is '%', the '%' character is printed.
-* The function keeps a count of the number of characters printed and returns this count
-* when the function is finished.
-*
-* Return: the number of characters printed (excluding the null byte used to end output to strings)
-*/
+ * _printf - produces output according to a format
+ * @format: format string containing the characters and the specifiers
+ * Description: this function will call the get_print() function that will
+ * determine which printing function to call depending on the conversion
+ * specifiers contained into fmt
+ * Return: length of the formatted output string
+ */
+int _printf(const char *format, ...)
+{
+	int (*pfunc)(va_list, flags_t *);
+	const char *p;
+	va_list arguments;
+	flags_t flags = {0, 0, 0};
 
-int _printf(const char *format, ...) {
-    int count = 0;
-    va_list args;
-    va_start(args, format);
-    for (int i = 0; format[i] != '\0'; i++) {
-        if (format[i] == '%') {
-            i++;
-            if (format[i] == 'c') {
-                char c = va_arg(args, int);
-                putchar(c);
-                count++;
-            } else if (format[i] == 's') {
-                char *s = va_arg(args, char *);
-                for (int j = 0; s[j] != '\0'; j++) {
-                    putchar(s[j]);
-                    count++;
-                }
-            } else if (format[i] == '%') {
-                putchar('%');
-                count++;
-            }
-        } else {
-            putchar(format[i]);
-            count++;
-        }
-    }
-    va_end(args);
-    return count;
+	register int count = 0;
+
+	va_start(arguments, format);
+	if (!format || (format[0] == '%' && !format[1]))
+		return (-1);
+	if (format[0] == '%' && format[1] == ' ' && !format[2])
+		return (-1);
+	for (p = format; *p; p++)
+	{
+		if (*p == '%')
+		{
+			p++;
+			if (*p == '%')
+			{
+				count += _putchar('%');
+				continue;
+			}
+			while (get_flag(*p, &flags))
+				p++;
+			pfunc = get_print(*p);
+			count += (pfunc)
+				? pfunc(arguments, &flags)
+				: _printf("%%%c", *p);
+		} else
+			count += _putchar(*p);
+	}
+	_putchar(-1);
+	va_end(arguments);
+	return (count);
+
 }
